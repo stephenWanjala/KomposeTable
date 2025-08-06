@@ -1,6 +1,6 @@
 # KomposeTable
 
-**KomposeTable** is a highly customizable table component for Compose Multiplatform, offering features like sorting, column resizing, row selection, and theming.
+**KomposeTable** is a highly customizable table component with A nealy Similar API as JavaFx Table for Compose Multiplatform, offering features like sorting, column resizing, row selection, and theming.
 
 ## Features
 
