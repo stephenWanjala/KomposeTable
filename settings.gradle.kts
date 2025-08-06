@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "KomposeTable"
-include(":shared")
+include(":komposetable")
