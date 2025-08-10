@@ -5,4 +5,5 @@ plugins {
     alias(libs.plugins.composeMultiplatform).apply(false)
     alias(libs.plugins.kotlin.plugin.serialization).apply(false)
     alias(libs.plugins.compose.compiler).apply(false)
+    alias(libs.plugins.vanniktech.mavenPublish) apply false
 }

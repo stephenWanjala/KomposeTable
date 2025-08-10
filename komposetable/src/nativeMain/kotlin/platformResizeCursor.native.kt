@@ -1,7 +1,4 @@
 package io.github.stephenwanjala.komposetable
-
 import androidx.compose.ui.Modifier
 
-actual fun Modifier.platformResizeCursor(): Modifier {
-    return this
-}
+actual fun Modifier.platformResizeCursor(): Modifier =this

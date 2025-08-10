@@ -18,28 +18,6 @@
 Here's an example of how to use `KomposeTable` to display a list of football teams:
 
 ```kotlin
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import io.github.stephenwanjala.komposetable.KomposeTable
-import io.github.stephenwanjala.komposetable.SortState
-import io.github.stephenwanjala.komposetable.TableColumn
-import io.github.stephenwanjala.komposetable.TableSelectionModel
-
-
 @Serializable
 data class FootballTeam(
     val team: String,

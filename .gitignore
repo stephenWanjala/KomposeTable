@@ -4,6 +4,7 @@
 .kotlin
 .DS_Store
 build
+key.gpg
 captures
 .externalNativeBuild
 .cxx

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.compose.compiler)
-    id("com.vanniktech.maven.publish") version "0.34.0"
+    alias(libs.plugins.vanniktech.mavenPublish)
 }
 group = "io.github.stephenwanjala"
 version = "0.0.1"
@@ -59,17 +59,10 @@ kotlin {
         }
     }
     jvm()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach {
-        it.binaries.framework {
-            baseName = "komposetable"
-            isStatic = true
-        }
-    }
 
     sourceSets {
         commonMain.dependencies {
