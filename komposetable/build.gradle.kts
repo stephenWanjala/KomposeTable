@@ -1,4 +1,3 @@
-import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -7,12 +6,13 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.compose.compiler)
-    id("com.vanniktech.maven.publish") version "0.30.0"
+    id("com.vanniktech.maven.publish") version "0.34.0"
 }
-// <module directory>/build.gradle.kts
+group = "io.github.stephenwanjala"
+version = "0.0.1"
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     signAllPublications()
 
@@ -20,7 +20,8 @@ mavenPublishing {
 
     pom {
         name = "Table Componet For Compose UI"
-        description = "A highly customizable table component with A nealy Similar API as JavaFx TableView for Compose Multiplatform, offering features like sorting, column resizing, row selection, and theming. "
+        description =
+            "A highly customizable table component with A nealy Similar API as JavaFx TableView for Compose Multiplatform, offering features like sorting, column resizing, row selection, and theming. "
         inceptionYear = "2025"
         url = " https://github.com/stephenWanjala/KomposeTable/"
         licenses {
@@ -58,7 +59,7 @@ kotlin {
         }
     }
     jvm()
-    
+
     listOf(
         iosX64(),
         iosArm64(),

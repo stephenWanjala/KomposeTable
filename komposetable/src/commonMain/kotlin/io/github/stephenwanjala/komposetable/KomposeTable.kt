@@ -1,4 +1,4 @@
-package com.github.stephenwanjala.komposetable
+package io.github.stephenwanjala.komposetable
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -50,7 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.github.stephenwanjala.komposetable.utils.extractMembers
+import io.github.stephenwanjala.komposetable.utils.extractMembers
 
 
 /**

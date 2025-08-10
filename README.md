@@ -34,23 +34,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.github.stephenwanjala.komposetable.KomposeTable
-import com.github.stephenwanjala.komposetable.SortState
-import com.github.stephenwanjala.komposetable.TableColumn
-import com.github.stephenwanjala.komposetable.TableSelectionModel
+import io.github.stephenwanjala.komposetable.KomposeTable
+import io.github.stephenwanjala.komposetable.SortState
+import io.github.stephenwanjala.komposetable.TableColumn
+import io.github.stephenwanjala.komposetable.TableSelectionModel
 
-// Assuming FootballTeam data class is defined elsewhere
+
+@Serializable
 data class FootballTeam(
     val team: String,
     val wins: Int,
     val draws: Int,
     val losses: Int,
-    val gamesPlayed: Int, // Assuming this was meant instead of a raw number
+    val gamesPlayed: Int,
     val goalsFor: Int,
     val goalsAgainst: Int,
     val goalDifference: Int,
     val points: Int,
-    val position: Int,       // Assuming this was meant
+    val position: Int,      
     val xG: Double,          // Expected Goals
     val xGA: Double,         // Expected Goals Against
     val marketValue: Int     // Example, in millions

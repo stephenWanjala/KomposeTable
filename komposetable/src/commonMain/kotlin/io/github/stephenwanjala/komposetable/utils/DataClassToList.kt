@@ -1,4 +1,4 @@
-package com.github.stephenwanjala.komposetable.utils
+package io.github.stephenwanjala.komposetable.utils
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.serializer
