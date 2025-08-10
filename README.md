@@ -1,6 +1,5 @@
-# KomposeTable
-<p>![Maven Central Version](https://img.shields.io/maven-central/v/io.github.stephenwanjala/komposetable)
-</p>
+# KomposeTable ![Maven Central Version](https://img.shields.io/maven-central/v/io.github.stephenwanjala/komposetable)
+
 **KomposeTable** is a highly customizable table component with A nealy Similar API as JavaFx Table for Compose Multiplatform, offering features like sorting, column resizing, row selection, and theming.
 
 ## Features
