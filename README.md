@@ -14,6 +14,7 @@
 *   **Compose Multiplatform:** Designed to work seamlessly across different platforms supported by Compose.
 
 ## Example Usage
+See sample Usage in [CRSP CalcKMP ](https://github.com/stephenWanjala/CRSPCalcKMp/tree/useTable) on the `useTable` branch
 
 Here's an example of how to use `KomposeTable` to display a list of football teams:
 
