@@ -70,9 +70,6 @@ kotlin {
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.material3)
-//            implementation(compose.components.resources)
-            implementation(libs.material.icons.extended)
-//            implementation(libs.components.ui.tooling.preview)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs) {

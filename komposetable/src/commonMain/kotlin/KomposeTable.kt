@@ -21,9 +21,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -218,9 +215,9 @@ inline fun <reified T : Any> KomposeTable(
 
                             if (enableSorting && column.sortable) {
                                 val sortIcon = when {
-                                    sortState.value.columnId == column.id && sortState.value.order == SortOrder.ASCENDING -> Icons.Default.KeyboardArrowUp
-                                    sortState.value.columnId == column.id && sortState.value.order == SortOrder.DESCENDING -> Icons.Default.ArrowDropDown
-                                    else -> Icons.Default.ArrowDropDown
+                                    sortState.value.columnId == column.id && sortState.value.order == SortOrder.ASCENDING -> KeyboardArrowUp
+                                    sortState.value.columnId == column.id && sortState.value.order == SortOrder.DESCENDING -> ArrowDropDown
+                                    else -> ArrowDropDown
                                 }
 
                                 Icon(
@@ -302,7 +299,7 @@ inline fun <reified T : Any> KomposeTable(
                                             selectionModel.selectItem(item, index)
                                         }
                                         onRowClick?.invoke(item, index)
-                                   }
+                                    }
                                 } else if (onRowClick != null) {
                                     Modifier.clickable { onRowClick.invoke(item, index) }
                                 } else {
