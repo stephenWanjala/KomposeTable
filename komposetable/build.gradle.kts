@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.vanniktech.mavenPublish)
 }
@@ -67,8 +66,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             //put your multiplatform dependencies here
-
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.material3)
         }
         jvmMain.dependencies {
