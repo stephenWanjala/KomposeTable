@@ -1,26 +1,34 @@
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import io.github.stephenwanjala.komposetable.KomposeTable
+import io.github.stephenwanjala.komposetable.SortState
+import io.github.stephenwanjala.komposetable.TableSelectionModel
+import io.github.stephenwanjala.komposetable.TableSortColumn
 
-# KomposeTable ![Maven Central Version](https://img.shields.io/maven-central/v/io.github.stephenwanjala/komposetable)
+fun main(): Unit = application {
+    Window(onCloseRequest = ::exitApplication) {
+        MaterialTheme {
+            FootballLeagueTableScreen()
+        }
+    }
+}
 
-**KomposeTable** is a highly customizable table component with an API inspired by JavaFX Table, designed for Compose Multiplatform. It offers features like sorting, column resizing, row selection, and theming, making it ideal for displaying tabular data across different platforms.
-
-## Features
-
-* **Column Sorting**: Click on column headers to sort data in ascending or descending order.
-* **Column Resizing**: Easily resize columns by dragging the column dividers.
-* **Row Selection**: Support for single and multiple row selection.
-* **Customizable Appearance**: Control table and cell styling, including colors, borders, and dividers.
-* **Alternating Row Colors**: Improve readability with alternating row background colors.
-* **Hover Effects**: Provide visual feedback when hovering over rows.
-* **Outlined Table**: Option to display the table within an outlined card.
-* **Compose Multiplatform**: Designed to work seamlessly across platforms supported by Compose.
-* **Type-Safe Data Extraction**: Uses a `valueExtractor` lambda for efficient, reflection-free data display and sorting.
-
-## Example Usage
-See sample usage in [sample module](sample) 
-
-Here's an example of how to use `KomposeTable` to display a list of football teams:
-
-```kotlin
 data class FootballTeam(
     val team: String,
     val wins: Int,
@@ -42,7 +50,6 @@ fun FootballLeagueTableScreen() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val teams = listOf(
             FootballTeam("Arsenal", 25, 10, 3, 38, 78, 28, 50, 85, 1, 58.0, 22.0, 88),
@@ -152,6 +159,7 @@ fun FootballLeagueTableScreen() {
         )
 
         KomposeTable(
+            modifier = Modifier.fillMaxSize(),
             columns = columns,
             tableData = teams,
             selectionModel = selectionModel,
@@ -169,14 +177,3 @@ fun FootballLeagueTableScreen() {
         )
     }
 }
-```
-
-## Installation
-*(TODO: Add installation instructions, e.g., how to include the library in a Gradle project.)*
-
-## TODO
-* Add a GIF or video demonstrating the features.
-* Add detailed installation instructions.
-* Add more detailed usage examples.
-* Add comprehensive API documentation.
-

@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "komposetable"
 include(":komposetable")
+include(":sample")
