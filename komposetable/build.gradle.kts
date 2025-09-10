@@ -68,11 +68,6 @@ kotlin {
             //put your multiplatform dependencies here
             implementation(libs.material3)
         }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs) {
-                exclude(group = "org.jetbrains.compose.material")
-            }
-        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
