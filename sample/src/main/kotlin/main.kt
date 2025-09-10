@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import io.github.stephenwanjala.komposetable.ColumnResizeMode
 import io.github.stephenwanjala.komposetable.KomposeTable
 import io.github.stephenwanjala.komposetable.SortState
 import io.github.stephenwanjala.komposetable.TableSelectionModel
@@ -167,6 +168,7 @@ fun FootballLeagueTableScreen() {
             enableSorting = true,
             enableSelection = true,
             enableColumnResizing = true,
+            columnResizeMode = ColumnResizeMode.CONSTRAINED,
             enableHover = true,
             onRowClick = { team, index ->
                 println("Clicked on ${team.team} at index $index")

@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -116,6 +117,9 @@ inline fun <reified T : Any> KomposeTable(
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberLazyListState()
 
+    // Track table width for constrained resizing
+    var tableWidth by remember { mutableStateOf(0.dp) }
+
     // Column widths state for resizing
     val columnWidths = remember {
         mutableStateMapOf<String, Dp>().apply {
@@ -149,8 +153,37 @@ inline fun <reified T : Any> KomposeTable(
         onSelectionChange?.invoke(selectionModel.selectedItems)
     }
 
+    //  Distribute extra width in CONSTRAINED mode
+    val distributedColumnWidths: Map<String, Dp> = remember(tableWidth, columnWidths, columnResizeMode, columns) {
+        if (columnResizeMode == ColumnResizeMode.CONSTRAINED && tableWidth > 0.dp) {
+            val visibleColumns = columns.filter { it.visible }
+            val currentWidths = visibleColumns.map { column ->
+                columnWidths[column.id] ?: column.width
+            }
+            val totalCurrentWidth = currentWidths.sumOf { it.value.toDouble() }.dp
+
+            if (totalCurrentWidth < tableWidth) {
+                val extraSpace = (tableWidth - totalCurrentWidth) / visibleColumns.size
+                visibleColumns.associate { column ->
+                    val baseWidth = columnWidths[column.id] ?: column.width
+                    column.id to (baseWidth + extraSpace)
+                }
+            } else {
+                columnWidths.toMap()
+            }
+        } else {
+            columnWidths.toMap()
+        }
+    }
+
     val tableContent = @Composable {
-        Column(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { coordinates ->
+                    tableWidth = with(density) { coordinates.size.width.toDp() }
+                }
+        ) {
             // Header Row
             Row(
                 modifier = Modifier
@@ -159,7 +192,7 @@ inline fun <reified T : Any> KomposeTable(
                     .height(48.dp),
             ) {
                 columns.filter { it.visible }.forEach { column ->
-                    val currentWidth = columnWidths[column.id] ?: column.width
+                    val currentWidth = distributedColumnWidths[column.id] ?: column.width
 
                     Box(
                         modifier = Modifier
@@ -171,9 +204,7 @@ inline fun <reified T : Any> KomposeTable(
                                         width = dividerThickness,
                                         color = headerBorderColor,
                                     )
-                                } else {
-                                    Modifier
-                                }
+                                } else Modifier
                             )
                             .then(
                                 if (enableSorting && column.sortable) {
@@ -187,9 +218,7 @@ inline fun <reified T : Any> KomposeTable(
                                         }
                                         sortState.value = SortState(column.id, newOrder)
                                     }
-                                } else {
-                                    Modifier
-                                }
+                                } else Modifier
                             ),
                         contentAlignment = Alignment.CenterStart,
                     ) {
@@ -221,9 +250,7 @@ inline fun <reified T : Any> KomposeTable(
                                     modifier = Modifier.size(16.dp),
                                     tint = if (sortState.value.columnId == column.id) {
                                         MaterialTheme.colorScheme.primary
-                                    } else {
-                                        Color.Gray
-                                    },
+                                    } else Color.Gray,
                                 )
                             }
                         }
@@ -235,20 +262,26 @@ inline fun <reified T : Any> KomposeTable(
                                     .fillMaxHeight()
                                     .width(4.dp)
                                     .align(Alignment.CenterEnd)
-                                    .platformResizeCursor() // Placeholder; implement as needed
-                                    .pointerInput(column.id) {
+                                    .background(Color.Transparent)
+                                    .platformResizeCursor()
+                                    .pointerInput(column.id, columnResizeMode, tableWidth) {
                                         detectDragGestures { change, _ ->
                                             val currentWidth = columnWidths[column.id] ?: column.width
-                                            val newWidth = with(density) {
-                                                (currentWidth.toPx() + change.position.x).toDp()
+                                            val newWidthPx = with(density) {
+                                                (currentWidth.toPx() + change.position.x).coerceIn(
+                                                    column.minWidth.toPx(),
+                                                    column.maxWidth.toPx()
+                                                )
                                             }
-                                            columnWidths[column.id] = newWidth.coerceIn(
-                                                column.minWidth,
-                                                column.maxWidth,
-                                            )
+                                            val newWidth = with(density) { newWidthPx.toDp() }
+
+                                            if (columnResizeMode == ColumnResizeMode.CONSTRAINED) {
+                                                columnWidths[column.id] = newWidth
+                                            } else {
+                                                columnWidths[column.id] = newWidth
+                                            }
                                         }
                                     }
-                                    .background(Color.Transparent),
                             )
                         }
                     }
@@ -296,9 +329,7 @@ inline fun <reified T : Any> KomposeTable(
                                     }
                                 } else if (onRowClick != null) {
                                     Modifier.clickable { onRowClick.invoke(item, index) }
-                                } else {
-                                    Modifier
-                                }
+                                } else Modifier
                             )
                             .then(
                                 if (enableHover) {
@@ -308,13 +339,11 @@ inline fun <reified T : Any> KomposeTable(
                                             onDragEnd = { hoveredRowIndex = -1 },
                                         ) { _, _ -> }
                                     }
-                                } else {
-                                    Modifier
-                                }
+                                } else Modifier
                             ),
                     ) {
                         columns.filter { it.visible }.forEach { column ->
-                            val currentWidth = columnWidths[column.id] ?: column.width
+                            val currentWidth = distributedColumnWidths[column.id] ?: column.width
 
                             Box(
                                 modifier = Modifier
@@ -326,9 +355,7 @@ inline fun <reified T : Any> KomposeTable(
                                                 width = dividerThickness,
                                                 color = dividerColor,
                                             )
-                                        } else {
-                                            Modifier
-                                        }
+                                        } else Modifier
                                     )
                                     .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.CenterStart,
