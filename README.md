@@ -150,16 +150,16 @@ fun FootballLeagueTableScreen() {
                 comparator = compareBy { it.goalDifference },
             ),
         )
+        val state = rememberKomposeTableState(
+            columnResizeMode = ColumnResizeMode.CONSTRAINED
+        )
 
         KomposeTable(
             columns = columns,
             tableData = teams,
             selectionModel = selectionModel,
             sortState = sortState,
-            enableSorting = true,
-            enableSelection = true,
-            enableColumnResizing = true,
-            enableHover = true,
+            state = state,
             onRowClick = { team, index ->
                 println("Clicked on ${team.team} at index $index")
             },

@@ -29,13 +29,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.stephenwanjala.komposetable.KomposeTableState.Companion.Saver
 
 /**
  * A composable function that displays a table with customizable columns, data, and behavior.
@@ -56,31 +62,15 @@ import androidx.compose.ui.unit.dp
  * @param columns A list of `TableSortColumn` objects defining the table's columns.
  * @param tableData A list of objects of type `T` to be displayed in the table.
  * @param modifier A `Modifier` to be applied to the table.
- * @param selectionModel A `TableSelectionModel` to manage row selection. Defaults to a new instance.
- * @param sortState A `MutableState` of `SortState` to manage column sorting. Defaults to a new instance.
- * @param outlinedTable A boolean indicating whether the table should be wrapped in an `OutlinedCard`. Defaults to `true`.
- * @param outlinedCardBorder The `BorderStroke` for the `OutlinedCard` if `outlinedTable` is `true`. Defaults to `CardDefaults.outlinedCardBorder()`.
- * @param outlinedCardShape The corner radius for the `OutlinedCard` if `outlinedTable` is `true`. Defaults to `8.dp`.
- * @param outlinedCardColor The background color for the `OutlinedCard` if `outlinedTable` is `true`. Defaults to `Color.Transparent`.
- * @param rowTextStyle The `TextStyle` for the text in table rows. Defaults to `MaterialTheme.typography.bodyMedium`.
- * @param alternatingRowColors A list of colors to be used for alternating row backgrounds. Defaults to `listOf(Color.White, Color(0xFFF5F5F5))`.
- * @param selectedRowColor The background color for selected rows. Defaults to `MaterialTheme.colorScheme.primaryContainer`.
- * @param hoveredRowColor The background color for hovered rows. Defaults to `Color(0xFFE3F2FD)`.
- * @param headerTextStyle The `TextStyle` for the text in the table header. Defaults to `MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)`.
- * @param headerBackgroundColor The background color for the table header. Defaults to `Color(0xFFE0E0E0)`.
- * @param headerBorderColor The color of the border around header cells. Defaults to `Color(0xFFBDBDBD)`.
- * @param showVerticalDividers A boolean indicating whether to show vertical dividers between columns. Defaults to `true`.
- * @param showHorizontalDividers A boolean indicating whether to show horizontal dividers between rows. Defaults to `true`.
- * @param dividerThickness The thickness of dividers. Defaults to `1.dp`.
- * @param dividerColor The color of dividers. Defaults to `Color(0xFFE0E0E0)`.
- * @param enableSorting A boolean indicating whether sorting is enabled for sortable columns. Defaults to `true`.
- * @param enableSelection A boolean indicating whether row selection is enabled. Defaults to `true`.
- * @param enableColumnResizing A boolean indicating whether column resizing is enabled for resizable columns. Defaults to `true`.
- * @param enableHover A boolean indicating whether row hover effects are enabled. Defaults to `true`.
- * @param columnResizeMode The resizing behavior for columns. Defaults to `ColumnResizeMode.UNCONSTRAINED`.
- * @param onRowClick A callback invoked when a row is clicked, providing the item and its index. Defaults to `null`.
- * @param onRowDoubleClick A callback invoked when a row is double-clicked, providing the item and its index. Defaults to `null`.
- * @param onSelectionChange A callback invoked when the selection changes, providing the list of selected items. Defaults to `null`.
+ * @param selectionModel A `TableSelectionModel` to manage row selection.
+ * @param sortState A `MutableState` of `SortState` to manage column sorting.
+ * @param state A `KomposeTableState` to manage table configuration.
+ * @param colors A `KomposeTableColors` object for table colors.
+ * @param rowTextStyle The `TextStyle` for the text in table rows.
+ * @param headerTextStyle The `TextStyle` for the text in the table header.
+ * @param onRowClick A callback invoked when a row is clicked, providing the item and its index.
+ * @param onRowDoubleClick A callback invoked when a row is double-clicked, providing the item and its index.
+ * @param onSelectionChange A callback invoked when the selection changes, providing the list of selected items.
  */
 @Composable
 inline fun <reified T : Any> KomposeTable(
@@ -89,26 +79,10 @@ inline fun <reified T : Any> KomposeTable(
     modifier: Modifier = Modifier,
     selectionModel: TableSelectionModel<T> = remember { TableSelectionModel<T>() },
     sortState: MutableState<SortState> = remember { mutableStateOf(SortState()) },
-    outlinedTable: Boolean = true,
-    outlinedCardBorder: BorderStroke? = CardDefaults.outlinedCardBorder(),
-    outlinedCardShape: Dp = 8.dp,
-    outlinedCardColor: Color = Color.Transparent,
+    state: KomposeTableState = rememberKomposeTableState(),
+    colors: KomposeTableColors = KomposeTableDefaults.colors,
     rowTextStyle: TextStyle = MaterialTheme.typography.bodyMedium,
-    alternatingRowColors: List<Color> = listOf(Color.White, Color(0xFFF5F5F5)),
-    selectedRowColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    hoveredRowColor: Color = Color(0xFFE3F2FD),
     headerTextStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-    headerBackgroundColor: Color = Color(0xFFE0E0E0),
-    headerBorderColor: Color = Color(0xFFBDBDBD),
-    showVerticalDividers: Boolean = true,
-    showHorizontalDividers: Boolean = true,
-    dividerThickness: Dp = 1.dp,
-    dividerColor: Color = Color(0xFFE0E0E0),
-    enableSorting: Boolean = true,
-    enableSelection: Boolean = true,
-    enableColumnResizing: Boolean = true,
-    enableHover: Boolean = true,
-    columnResizeMode: ColumnResizeMode = ColumnResizeMode.UNCONSTRAINED,
     noinline onRowClick: ((T, Int) -> Unit)? = null,
     noinline onRowDoubleClick: ((T, Int) -> Unit)? = null,
     noinline onSelectionChange: ((List<T>) -> Unit)? = null,
@@ -139,7 +113,8 @@ inline fun <reified T : Any> KomposeTable(
             tableData
         } else {
             val column = columns.find { it.id == currentSort.columnId }
-            val comparator = column?.comparator ?: compareBy { column?.valueExtractor?.invoke(it) ?: "" }
+            val comparator =
+                column?.comparator ?: compareBy { column?.valueExtractor?.invoke(it) ?: "" }
             when (currentSort.order) {
                 SortOrder.ASCENDING -> tableData.sortedWith(comparator)
                 SortOrder.DESCENDING -> tableData.sortedWith(comparator.reversed())
@@ -153,28 +128,29 @@ inline fun <reified T : Any> KomposeTable(
         onSelectionChange?.invoke(selectionModel.selectedItems)
     }
 
-    //  Distribute extra width in CONSTRAINED mode
-    val distributedColumnWidths: Map<String, Dp> = remember(tableWidth, columnWidths, columnResizeMode, columns) {
-        if (columnResizeMode == ColumnResizeMode.CONSTRAINED && tableWidth > 0.dp) {
-            val visibleColumns = columns.filter { it.visible }
-            val currentWidths = visibleColumns.map { column ->
-                columnWidths[column.id] ?: column.width
-            }
-            val totalCurrentWidth = currentWidths.sumOf { it.value.toDouble() }.dp
+    // Distribute extra width in CONSTRAINED mode
+    val distributedColumnWidths: Map<String, Dp> =
+        remember(tableWidth, columnWidths, state.columnResizeMode, columns) {
+            if (state.columnResizeMode == ColumnResizeMode.CONSTRAINED && tableWidth > 0.dp) {
+                val visibleColumns = columns.filter { it.visible }
+                val currentWidths = visibleColumns.map { column ->
+                    columnWidths[column.id] ?: column.width
+                }
+                val totalCurrentWidth = currentWidths.sumOf { it.value.toDouble() }.dp
 
-            if (totalCurrentWidth < tableWidth) {
-                val extraSpace = (tableWidth - totalCurrentWidth) / visibleColumns.size
-                visibleColumns.associate { column ->
-                    val baseWidth = columnWidths[column.id] ?: column.width
-                    column.id to (baseWidth + extraSpace)
+                if (totalCurrentWidth < tableWidth) {
+                    val extraSpace = (tableWidth - totalCurrentWidth) / visibleColumns.size
+                    visibleColumns.associate { column ->
+                        val baseWidth = columnWidths[column.id] ?: column.width
+                        column.id to (baseWidth + extraSpace)
+                    }
+                } else {
+                    columnWidths.toMap()
                 }
             } else {
                 columnWidths.toMap()
             }
-        } else {
-            columnWidths.toMap()
         }
-    }
 
     val tableContent = @Composable {
         Column(
@@ -187,7 +163,7 @@ inline fun <reified T : Any> KomposeTable(
             // Header Row
             Row(
                 modifier = Modifier
-                    .background(headerBackgroundColor)
+                    .background(colors.headerBackgroundColor)
                     .horizontalScroll(horizontalScrollState)
                     .height(48.dp),
             ) {
@@ -199,15 +175,15 @@ inline fun <reified T : Any> KomposeTable(
                             .width(currentWidth)
                             .fillMaxHeight()
                             .then(
-                                if (showVerticalDividers) {
+                                if (state.showVerticalDividers) {
                                     Modifier.border(
-                                        width = dividerThickness,
-                                        color = headerBorderColor,
+                                        width = state.dividerThickness,
+                                        color = colors.headerBorderColor,
                                     )
                                 } else Modifier
                             )
                             .then(
-                                if (enableSorting && column.sortable) {
+                                if (state.enableSorting && column.sortable) {
                                     Modifier.clickable {
                                         val currentSort = sortState.value
                                         val newOrder = when {
@@ -237,7 +213,7 @@ inline fun <reified T : Any> KomposeTable(
                                 modifier = Modifier.weight(1f),
                             )
 
-                            if (enableSorting && column.sortable) {
+                            if (state.enableSorting && column.sortable) {
                                 val sortIcon = when {
                                     sortState.value.columnId == column.id && sortState.value.order == SortOrder.ASCENDING -> KeyboardArrowUp
                                     sortState.value.columnId == column.id && sortState.value.order == SortOrder.DESCENDING -> ArrowDropDown
@@ -256,7 +232,7 @@ inline fun <reified T : Any> KomposeTable(
                         }
 
                         // Column resize handle
-                        if (enableColumnResizing && column.resizable) {
+                        if (state.enableColumnResizing && column.resizable) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
@@ -264,9 +240,10 @@ inline fun <reified T : Any> KomposeTable(
                                     .align(Alignment.CenterEnd)
                                     .background(Color.Transparent)
                                     .platformResizeCursor()
-                                    .pointerInput(column.id, columnResizeMode, tableWidth) {
+                                    .pointerInput(column.id, state.columnResizeMode, tableWidth) {
                                         detectDragGestures { change, _ ->
-                                            val currentWidth = columnWidths[column.id] ?: column.width
+                                            val currentWidth =
+                                                columnWidths[column.id] ?: column.width
                                             val newWidthPx = with(density) {
                                                 (currentWidth.toPx() + change.position.x).coerceIn(
                                                     column.minWidth.toPx(),
@@ -275,7 +252,7 @@ inline fun <reified T : Any> KomposeTable(
                                             }
                                             val newWidth = with(density) { newWidthPx.toDp() }
 
-                                            if (columnResizeMode == ColumnResizeMode.CONSTRAINED) {
+                                            if (state.columnResizeMode == ColumnResizeMode.CONSTRAINED) {
                                                 columnWidths[column.id] = newWidth
                                             } else {
                                                 columnWidths[column.id] = newWidth
@@ -289,10 +266,10 @@ inline fun <reified T : Any> KomposeTable(
             }
 
             // Horizontal divider after header
-            if (showHorizontalDividers) {
+            if (state.showHorizontalDividers) {
                 HorizontalDivider(
-                    thickness = dividerThickness,
-                    color = dividerColor,
+                    thickness = state.dividerThickness,
+                    color = colors.dividerColor,
                 )
             }
 
@@ -303,13 +280,13 @@ inline fun <reified T : Any> KomposeTable(
             ) {
                 itemsIndexed(sortedData) { index, item ->
                     val isSelected = selectionModel.isSelected(item)
-                    val isHovered = hoveredRowIndex == index && enableHover
+                    val isHovered = hoveredRowIndex == index && state.enableHover
 
                     val rowBackgroundColor = when {
-                        isSelected -> selectedRowColor
-                        isHovered -> hoveredRowColor
-                        index % 2 == 0 -> alternatingRowColors[0]
-                        else -> alternatingRowColors.getOrElse(1) { alternatingRowColors[0] }
+                        isSelected -> colors.selectedRowColor
+                        isHovered -> colors.hoveredRowColor
+                        index % 2 == 0 -> colors.alternatingRowColors[0]
+                        else -> colors.alternatingRowColors.getOrElse(1) { colors.alternatingRowColors[0] }
                     }
 
                     Row(
@@ -318,7 +295,7 @@ inline fun <reified T : Any> KomposeTable(
                             .horizontalScroll(horizontalScrollState)
                             .height(40.dp)
                             .then(
-                                if (enableSelection) {
+                                if (state.enableSelection) {
                                     Modifier.clickable {
                                         if (selectionModel.isSelected(item)) {
                                             selectionModel.deselectItem(item, index)
@@ -332,7 +309,7 @@ inline fun <reified T : Any> KomposeTable(
                                 } else Modifier
                             )
                             .then(
-                                if (enableHover) {
+                                if (state.enableHover) {
                                     Modifier.pointerInput(index) {
                                         detectDragGestures(
                                             onDragStart = { hoveredRowIndex = index },
@@ -350,10 +327,10 @@ inline fun <reified T : Any> KomposeTable(
                                     .width(currentWidth)
                                     .fillMaxHeight()
                                     .then(
-                                        if (showVerticalDividers) {
+                                        if (state.showVerticalDividers) {
                                             Modifier.border(
-                                                width = dividerThickness,
-                                                color = dividerColor,
+                                                width = state.dividerThickness,
+                                                color = colors.dividerColor,
                                             )
                                         } else Modifier
                                     )
@@ -366,10 +343,10 @@ inline fun <reified T : Any> KomposeTable(
                     }
 
                     // Horizontal divider after each row
-                    if (showHorizontalDividers && index < sortedData.size - 1) {
+                    if (state.showHorizontalDividers && index < sortedData.size - 1) {
                         HorizontalDivider(
-                            thickness = dividerThickness,
-                            color = dividerColor,
+                            thickness = state.dividerThickness,
+                            color = colors.dividerColor,
                         )
                     }
                 }
@@ -377,20 +354,20 @@ inline fun <reified T : Any> KomposeTable(
         }
     }
 
-    if (outlinedTable) {
-        if (outlinedCardBorder != null) {
+    if (state.outlinedTable) {
+        if (state.outlinedCardBorder != null) {
             OutlinedCard(
-                border = outlinedCardBorder,
-                shape = RoundedCornerShape(outlinedCardShape),
-                colors = CardDefaults.cardColors(containerColor = outlinedCardColor),
+                border = state.outlinedCardBorder,
+                shape = RoundedCornerShape(state.outlinedCardShape),
+                colors = CardDefaults.cardColors(containerColor = colors.outlinedCardColor),
                 modifier = modifier,
             ) {
                 tableContent()
             }
         } else {
             Card(
-                shape = RoundedCornerShape(outlinedCardShape),
-                colors = CardDefaults.cardColors(containerColor = outlinedCardColor),
+                shape = RoundedCornerShape(state.outlinedCardShape),
+                colors = CardDefaults.cardColors(containerColor = colors.outlinedCardColor),
                 modifier = modifier,
             ) {
                 tableContent()
@@ -403,23 +380,6 @@ inline fun <reified T : Any> KomposeTable(
 
 /**
  * Represents a column in the `KomposeTable`.
- *
- * @param T The type of data displayed in the cells of this column.
- * @param id A unique identifier for the column, used for managing state like column widths and sorting.
- * @param title The text displayed in the header of this column.
- * @param width The initial width of the column.
- * @param minWidth The minimum width the column can be resized to.
- * @param maxWidth The maximum width the column can be resized to.
- * @param resizable Whether this column can be resized by the user.
- * @param sortable Whether this column can be sorted by the user.
- * @param visible Whether this column is currently visible in the table.
- * @param valueExtractor A lambda that extracts the display value for the column from a data item
- *                       as a `String`. Used by the default `cellFactory` and default comparator.
- * @param cellFactory A composable function that defines how to render the content of a cell
- *                    in this column for a given data item. Defaults to displaying the value
- *                    extracted by `valueExtractor` as `Text`.
- * @param comparator An optional `Comparator` used for sorting this column. If not provided,
- *                   a default comparator will use the `valueExtractor` for sorting.
  */
 data class TableSortColumn<T>(
     val id: String,
@@ -464,8 +424,6 @@ enum class ColumnResizeMode {
 
 /**
  * Manages the selection state of items in a table.
- *
- * @param T The type of items in the table.
  */
 class TableSelectionModel<T> {
     private val _selectedItems = mutableStateListOf<T>()
@@ -484,6 +442,7 @@ class TableSelectionModel<T> {
                 _selectedItems.add(item)
                 _selectedIndices.add(index)
             }
+
             SelectionMode.MULTIPLE -> {
                 if (!_selectedItems.contains(item)) {
                     _selectedItems.add(item)
@@ -521,3 +480,154 @@ class TableSelectionModel<T> {
  */
 enum class SelectionMode { SINGLE, MULTIPLE }
 
+/**
+ * Default values for `KomposeTable`.
+ */
+@Immutable
+object KomposeTableDefaults {
+    val colors: KomposeTableColors
+        @Composable get() = KomposeTableColors(
+            selectedRowColor = MaterialTheme.colorScheme.primaryContainer,
+            hoveredRowColor = Color(0xFFE3F2FD),
+            headerBorderColor = Color(0xFFBDBDBD),
+            headerBackgroundColor = Color(0xFFE0E0E0),
+            dividerColor = Color(0xFFE0E0E0),
+            outlinedCardColor = Color.Transparent,
+            alternatingRowColors = listOf(Color.White, Color(0xFFF5F5F5))
+        )
+}
+
+
+/**
+ * Color configuration for `KomposeTable`.
+ */
+@Immutable
+data class KomposeTableColors(
+    val selectedRowColor: Color,
+    val hoveredRowColor: Color,
+    val headerBorderColor: Color,
+    val headerBackgroundColor: Color,
+    val dividerColor: Color,
+    val outlinedCardColor: Color,
+    val alternatingRowColors: List<Color>
+)
+
+
+/**
+ * State configuration for `KomposeTable`.
+ */
+@Stable
+data class KomposeTableState(
+    val outlinedTable: Boolean = true,
+    val outlinedCardBorder: BorderStroke? = null,
+    val outlinedCardShape: Dp = 8.dp,
+    val showVerticalDividers: Boolean = true,
+    val showHorizontalDividers: Boolean = true,
+    val dividerThickness: Dp = 1.dp,
+    val enableSorting: Boolean = true,
+    val enableSelection: Boolean = true,
+    val enableColumnResizing: Boolean = true,
+    val enableHover: Boolean = true,
+    val columnResizeMode: ColumnResizeMode = ColumnResizeMode.UNCONSTRAINED,
+) {
+    companion object {
+        /**
+         * A [Saver] for [KomposeTableState] to handle saving and restoring its properties.
+         */
+        val Saver: Saver<KomposeTableState, Any> = object : Saver<KomposeTableState, Any> {
+            override fun SaverScope.save(value: KomposeTableState): Any {
+                return listOf(
+                    value.outlinedTable,
+                    value.outlinedCardBorder?.width?.value ?: -1f, // Save width or -1 if null
+//                    value.outlinedCardBorder?.color?.value?.toLong() ?: -1L, // Save color as Long or -1 if null
+                    value.outlinedCardShape.value,
+                    value.showVerticalDividers,
+                    value.showHorizontalDividers,
+                    value.dividerThickness.value,
+                    value.enableSorting,
+                    value.enableSelection,
+                    value.enableColumnResizing,
+                    value.enableHover,
+                    value.columnResizeMode.name,
+                )
+            }
+
+            override fun restore(value: Any): KomposeTableState? {
+                if (value !is List<*> || value.size != 12) return null
+                return try {
+                    val outlinedTable = value[0] as? Boolean ?: return null
+                    val borderWidth = value[1] as? Float ?: return null
+                    val borderColorValue = value[2] as? Long ?: return null
+                    val outlinedCardShape = value[3] as? Float ?: return null
+                    val showVerticalDividers = value[4] as? Boolean ?: return null
+                    val showHorizontalDividers = value[5] as? Boolean ?: return null
+                    val dividerThickness = value[6] as? Float ?: return null
+                    val enableSorting = value[7] as? Boolean ?: return null
+                    val enableSelection = value[8] as? Boolean ?: return null
+                    val enableColumnResizing = value[9] as? Boolean ?: return null
+                    val enableHover = value[10] as? Boolean ?: return null
+                    val columnResizeModeName = value[11] as? String ?: return null
+
+                    val borderStroke = if (borderWidth >= 0f && borderColorValue >= 0) {
+                        BorderStroke(
+                            width = borderWidth.dp,
+                            color = Color(borderColorValue.toULong())
+                        )
+                    } else {
+                        null
+                    }
+
+                    KomposeTableState(
+                        outlinedTable = outlinedTable,
+                        outlinedCardBorder = borderStroke,
+                        outlinedCardShape = outlinedCardShape.dp,
+                        showVerticalDividers = showVerticalDividers,
+                        showHorizontalDividers = showHorizontalDividers,
+                        dividerThickness = dividerThickness.dp,
+                        enableSorting = enableSorting,
+                        enableSelection = enableSelection,
+                        enableColumnResizing = enableColumnResizing,
+                        enableHover = enableHover,
+                        columnResizeMode = ColumnResizeMode.valueOf(columnResizeModeName)
+                    )
+                } catch (e: Exception) {
+                    null // Return null if restoration fails
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Creates and remembers a [KomposeTableState] that survives configuration changes.
+ */
+@Composable
+fun rememberKomposeTableState(
+    outlinedTable: Boolean = true,
+    outlinedCardBorder: BorderStroke? = CardDefaults.outlinedCardBorder(),
+    outlinedCardShape: Dp = 8.dp,
+    showVerticalDividers: Boolean = true,
+    showHorizontalDividers: Boolean = true,
+    dividerThickness: Dp = 1.dp,
+    enableSorting: Boolean = true,
+    enableSelection: Boolean = true,
+    enableColumnResizing: Boolean = true,
+    enableHover: Boolean = true,
+    columnResizeMode: ColumnResizeMode = ColumnResizeMode.UNCONSTRAINED,
+): KomposeTableState {
+    return rememberSaveable(saver = KomposeTableState.Saver) {
+        KomposeTableState(
+            outlinedTable = outlinedTable,
+            outlinedCardBorder = outlinedCardBorder,
+            outlinedCardShape = outlinedCardShape,
+            showVerticalDividers = showVerticalDividers,
+            showHorizontalDividers = showHorizontalDividers,
+            dividerThickness = dividerThickness,
+            enableSorting = enableSorting,
+            enableSelection = enableSelection,
+            enableColumnResizing = enableColumnResizing,
+            enableHover = enableHover,
+            columnResizeMode = columnResizeMode,
+        )
+    }
+}

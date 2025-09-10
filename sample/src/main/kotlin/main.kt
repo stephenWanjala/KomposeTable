@@ -21,6 +21,7 @@ import io.github.stephenwanjala.komposetable.KomposeTable
 import io.github.stephenwanjala.komposetable.SortState
 import io.github.stephenwanjala.komposetable.TableSelectionModel
 import io.github.stephenwanjala.komposetable.TableSortColumn
+import io.github.stephenwanjala.komposetable.rememberKomposeTableState
 
 fun main(): Unit = application {
     Window(onCloseRequest = ::exitApplication) {
@@ -158,18 +159,16 @@ fun FootballLeagueTableScreen() {
                 comparator = compareBy { it.goalDifference },
             ),
         )
-
+        val state = rememberKomposeTableState(
+            columnResizeMode = ColumnResizeMode.CONSTRAINED
+        )
         KomposeTable(
             modifier = Modifier.fillMaxSize(),
             columns = columns,
+            state = state,
             tableData = teams,
             selectionModel = selectionModel,
             sortState = sortState,
-            enableSorting = true,
-            enableSelection = true,
-            enableColumnResizing = true,
-            columnResizeMode = ColumnResizeMode.CONSTRAINED,
-            enableHover = true,
             onRowClick = { team, index ->
                 println("Clicked on ${team.team} at index $index")
             },
