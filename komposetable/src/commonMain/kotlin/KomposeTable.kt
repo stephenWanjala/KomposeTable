@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,6 +55,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.stephenwanjala.komposetable.KomposeTableState.Companion.Saver
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * A composable function that displays a table with customizable columns, data, and behavior.
@@ -91,15 +94,25 @@ inline fun <reified T : Any> KomposeTable(
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberLazyListState()
 
-    // Set selection mode and initialize default selections
+    // Initialize default selections once
     LaunchedEffect(state.defaultSelectedIndices, state.selectionMode, tableData) {
         selectionModel.selectionMode = state.selectionMode
-        selectionModel.clearSelection()
-        state.defaultSelectedIndices.forEach { index ->
-            if (index in tableData.indices) {
-                selectionModel.selectItem(tableData[index], index)
-            }
+        selectionModel.clearSelection(onSelectionChange)
+        val validIndices = state.defaultSelectedIndices.filter { it in tableData.indices }
+        validIndices.forEach { index ->
+            selectionModel.selectItem(tableData[index], index)
         }
+        if (validIndices.isNotEmpty()) {
+            onSelectionChange?.invoke(selectionModel.selectedItems)
+        }
+    }
+
+    // Observe selection changes
+    LaunchedEffect(selectionModel) {
+        snapshotFlow { selectionModel.selectedItems.toList() }
+            .map { it.map { item -> item.hashCode() } } // Use hash codes to detect content changes
+            .distinctUntilChanged()
+            .collect { onSelectionChange?.invoke(selectionModel.selectedItems) }
     }
 
     // Track table width for constrained resizing
@@ -132,11 +145,6 @@ inline fun <reified T : Any> KomposeTable(
                 SortOrder.NONE -> tableData
             }
         }
-    }
-
-    // Handle selection changes
-    LaunchedEffect(selectionModel.selectedItems) {
-        onSelectionChange?.invoke(selectionModel.selectedItems)
     }
 
     // Distribute extra width in CONSTRAINED mode
@@ -308,10 +316,18 @@ inline fun <reified T : Any> KomposeTable(
                             .then(
                                 if (state.enableSelection) {
                                     Modifier.clickable {
-                                        if (selectionModel.isSelected(item)) {
-                                            selectionModel.deselectItem(item, index)
+                                        if (isSelected) {
+                                            selectionModel.deselectItem(
+                                                item,
+                                                index,
+                                                onSelectionChange
+                                            )
                                         } else {
-                                            selectionModel.selectItem(item, index)
+                                            selectionModel.selectItem(
+                                                item,
+                                                index,
+                                                onSelectionChange
+                                            )
                                         }
                                         onRowClick?.invoke(item, index)
                                     }
@@ -436,13 +452,22 @@ inline fun <reified T : Any> KomposeTable(
 
     // Initialize selection model
     LaunchedEffect(validatedIndices, selectionMode, tableData) {
-        selectionModel.selectionMode = selectionMode
-        selectionModel.clearSelection()
-        validatedIndices.forEach { index ->
-            if (index in tableData.indices) {
-                selectionModel.selectItem(tableData[index], index)
-            }
+        selectionModel.selectionMode = state.selectionMode
+        selectionModel.clearSelection(onSelectionChange)
+        validatedIndices.filter { it in tableData.indices }.forEach { index ->
+            selectionModel.selectItem(tableData[index], index)
         }
+        if (validatedIndices.isNotEmpty()) {
+            onSelectionChange?.invoke(selectionModel.selectedItems)
+        }
+    }
+
+    // Observe selection changes
+    LaunchedEffect(selectionModel) {
+        snapshotFlow { selectionModel.selectedItems.toList() }
+            .map { it.map { item -> item.hashCode() } }
+            .distinctUntilChanged()
+            .collect { onSelectionChange?.invoke(selectionModel.selectedItems) }
     }
 
     // Reuse the original KomposeTable with updated state
@@ -548,8 +573,9 @@ class TableSelectionModel<T> {
      *
      * @param item The item to select.
      * @param index The index of the item in the table.
+     * @param onSelectionChange An optional callback to invoke with the updated selection.
      */
-    fun selectItem(item: T, index: Int) {
+    fun selectItem(item: T, index: Int, onSelectionChange: ((List<T>) -> Unit)? = null) {
         when (selectionMode) {
             SelectionMode.SINGLE -> {
                 _selectedItems.clear()
@@ -565,6 +591,7 @@ class TableSelectionModel<T> {
                 }
             }
         }
+        onSelectionChange?.invoke(_selectedItems)
     }
 
     /**
@@ -572,10 +599,12 @@ class TableSelectionModel<T> {
      *
      * @param item The item to deselect.
      * @param index The index of the item in the table.
+     * @param onSelectionChange An optional callback to invoke with the updated selection.
      */
-    fun deselectItem(item: T, index: Int) {
+    fun deselectItem(item: T, index: Int, onSelectionChange: ((List<T>) -> Unit)? = null) {
         _selectedItems.remove(item)
         _selectedIndices.remove(index)
+        onSelectionChange?.invoke(_selectedItems)
     }
 
     /**
@@ -594,23 +623,30 @@ class TableSelectionModel<T> {
      */
     fun isSelected(index: Int): Boolean = _selectedIndices.contains(index)
 
-    /** Clears all selected items and indices. */
-    fun clearSelection() {
+    /**
+     * Clears all selected items and indices.
+     *
+     * @param onSelectionChange An optional callback to invoke with the updated selection.
+     */
+    fun clearSelection(onSelectionChange: ((List<T>) -> Unit)? = null) {
         _selectedItems.clear()
         _selectedIndices.clear()
+        onSelectionChange?.invoke(_selectedItems)
     }
 
     /**
      * Selects all items in the provided list.
      *
      * @param items The list of items to select.
+     * @param onSelectionChange An optional callback to invoke with the updated selection.
      */
-    fun selectAll(items: List<T>) {
+    fun selectAll(items: List<T>, onSelectionChange: ((List<T>) -> Unit)? = null) {
         if (selectionMode == SelectionMode.MULTIPLE) {
             _selectedItems.clear()
             _selectedIndices.clear()
             _selectedItems.addAll(items)
             _selectedIndices.addAll(items.indices)
+            onSelectionChange?.invoke(_selectedItems)
         }
     }
 }
@@ -702,7 +738,6 @@ data class KomposeTableState(
                 return listOf(
                     value.outlinedTable,
                     value.outlinedCardBorder?.width?.value ?: -1f,
-//                    value.outlinedCardBorder?.color?.value?.toLong() ?: -1L,
                     value.outlinedCardShape.value,
                     value.showVerticalDividers,
                     value.showHorizontalDividers,

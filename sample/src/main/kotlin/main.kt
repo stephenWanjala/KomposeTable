@@ -162,8 +162,8 @@ fun FootballLeagueTableScreen() {
             ),
         )
         val state = rememberKomposeTableState(
-            defaultSelectedIndices = setOf(0),
-            selectionMode = SelectionMode.SINGLE,
+            defaultSelectedIndices = setOf(0,2,5),
+            selectionMode = SelectionMode.MULTIPLE,
             columnResizeMode = ColumnResizeMode.CONSTRAINED
         )
         KomposeTable(
