@@ -59,15 +59,15 @@ import io.github.stephenwanjala.komposetable.KomposeTableState.Companion.Saver
  * A composable function that displays a table with customizable columns, data, and behavior.
  *
  * @param T The type of data displayed in the table. Must be a non-nullable `Any` type.
- * @param columns A list of `TableSortColumn` objects defining the table's columns.
+ * @param columns A list of [TableSortColumn] objects defining the table's columns.
  * @param tableData A list of objects of type `T` to be displayed in the table.
- * @param modifier A `Modifier` to be applied to the table.
- * @param selectionModel A `TableSelectionModel` to manage row selection.
- * @param sortState A `MutableState` of `SortState` to manage column sorting.
- * @param state A `KomposeTableState` to manage table configuration.
- * @param colors A `KomposeTableColors` object for table colors.
- * @param rowTextStyle The `TextStyle` for the text in table rows.
- * @param headerTextStyle The `TextStyle` for the text in the table header.
+ * @param modifier A [Modifier] to be applied to the table.
+ * @param selectionModel A [TableSelectionModel] to manage row selection.
+ * @param sortState A [MutableState] of [SortState] to manage column sorting.
+ * @param state A [KomposeTableState] to manage table configuration, including default selections.
+ * @param colors A [KomposeTableColors] object for table colors.
+ * @param rowTextStyle The [TextStyle] for the text in table rows.
+ * @param headerTextStyle The [TextStyle] for the text in the table header.
  * @param onRowClick A callback invoked when a row is clicked, providing the item and its index.
  * @param onRowDoubleClick A callback invoked when a row is double-clicked, providing the item and its index.
  * @param onSelectionChange A callback invoked when the selection changes, providing the list of selected items.
@@ -90,6 +90,17 @@ inline fun <reified T : Any> KomposeTable(
     val density = LocalDensity.current
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberLazyListState()
+
+    // Set selection mode and initialize default selections
+    LaunchedEffect(state.defaultSelectedIndices, state.selectionMode, tableData) {
+        selectionModel.selectionMode = state.selectionMode
+        selectionModel.clearSelection()
+        state.defaultSelectedIndices.forEach { index ->
+            if (index in tableData.indices) {
+                selectionModel.selectItem(tableData[index], index)
+            }
+        }
+    }
 
     // Track table width for constrained resizing
     var tableWidth by remember { mutableStateOf(0.dp) }
@@ -379,7 +390,96 @@ inline fun <reified T : Any> KomposeTable(
 }
 
 /**
- * Represents a column in the `KomposeTable`.
+ * A variant of [KomposeTable] that allows specifying default selected indices and selection mode directly.
+ *
+ * @param T The type of data displayed in the table. Must be a non-nullable `Any` type.
+ * @param columns A list of [TableSortColumn] objects defining the table's columns.
+ * @param tableData A list of objects of type `T` to be displayed in the table.
+ * @param defaultSelectedIndices A set of indices to be selected by default.
+ * @param selectionMode The [SelectionMode] for the table (SINGLE or MULTIPLE).
+ * @param modifier A [Modifier] to be applied to the table.
+ * @param selectionModel A [TableSelectionModel] to manage row selection.
+ * @param sortState A [MutableState] of [SortState] to manage column sorting.
+ * @param state A [KomposeTableState] to manage table configuration.
+ * @param colors A [KomposeTableColors] object for table colors.
+ * @param rowTextStyle The [TextStyle] for the text in table rows.
+ * @param headerTextStyle The [TextStyle] for the text in the table header.
+ * @param onRowClick A callback invoked when a row is clicked, providing the item and its index.
+ * @param onRowDoubleClick A callback invoked when a row is double-clicked, providing the item and its index.
+ * @param onSelectionChange A callback invoked when the selection changes, providing the list of selected items.
+ */
+@Composable
+inline fun <reified T : Any> KomposeTable(
+    columns: List<TableSortColumn<T>>,
+    tableData: List<T>,
+    defaultSelectedIndices: Set<Int>,
+    selectionMode: SelectionMode = SelectionMode.SINGLE,
+    modifier: Modifier = Modifier,
+    selectionModel: TableSelectionModel<T> = remember { TableSelectionModel<T>() },
+    sortState: MutableState<SortState> = remember { mutableStateOf(SortState()) },
+    state: KomposeTableState = rememberKomposeTableState(
+        defaultSelectedIndices = defaultSelectedIndices,
+        selectionMode = selectionMode
+    ),
+    colors: KomposeTableColors = KomposeTableDefaults.colors,
+    rowTextStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+    headerTextStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+    noinline onRowClick: ((T, Int) -> Unit)? = null,
+    noinline onRowDoubleClick: ((T, Int) -> Unit)? = null,
+    noinline onSelectionChange: ((List<T>) -> Unit)? = null,
+) {
+    // Validate defaultSelectedIndices based on selectionMode
+    val validatedIndices = when (selectionMode) {
+        SelectionMode.SINGLE -> defaultSelectedIndices.take(1).toSet()
+        SelectionMode.MULTIPLE -> defaultSelectedIndices
+    }
+
+    // Initialize selection model
+    LaunchedEffect(validatedIndices, selectionMode, tableData) {
+        selectionModel.selectionMode = selectionMode
+        selectionModel.clearSelection()
+        validatedIndices.forEach { index ->
+            if (index in tableData.indices) {
+                selectionModel.selectItem(tableData[index], index)
+            }
+        }
+    }
+
+    // Reuse the original KomposeTable with updated state
+    KomposeTable(
+        columns = columns,
+        tableData = tableData,
+        modifier = modifier,
+        selectionModel = selectionModel,
+        sortState = sortState,
+        state = state.copy(
+            defaultSelectedIndices = validatedIndices,
+            selectionMode = selectionMode
+        ),
+        colors = colors,
+        rowTextStyle = rowTextStyle,
+        headerTextStyle = headerTextStyle,
+        onRowClick = onRowClick,
+        onRowDoubleClick = onRowDoubleClick,
+        onSelectionChange = onSelectionChange,
+    )
+}
+
+/**
+ * Represents a column in the [KomposeTable].
+ *
+ * @param T The type of data displayed in the table.
+ * @param id A unique identifier for the column.
+ * @param title The title displayed in the column header.
+ * @param width The initial width of the column.
+ * @param minWidth The minimum width the column can be resized to.
+ * @param maxWidth The maximum width the column can be resized to.
+ * @param resizable Whether the column can be resized.
+ * @param sortable Whether the column can be sorted.
+ * @param visible Whether the column is visible.
+ * @param valueExtractor A function to extract a string value from the data for sorting or display.
+ * @param cellFactory A composable function to render the cell content.
+ * @param comparator An optional comparator for sorting the column.
  */
 data class TableSortColumn<T>(
     val id: String,
@@ -403,6 +503,9 @@ data class TableSortColumn<T>(
 
 /**
  * Defines the sort state for the table.
+ *
+ * @param columnId The ID of the column being sorted.
+ * @param order The [SortOrder] applied to the column.
  */
 data class SortState(
     val columnId: String = "",
@@ -424,16 +527,28 @@ enum class ColumnResizeMode {
 
 /**
  * Manages the selection state of items in a table.
+ *
+ * @param T The type of data in the table.
  */
 class TableSelectionModel<T> {
     private val _selectedItems = mutableStateListOf<T>()
     private val _selectedIndices = mutableStateListOf<Int>()
 
+    /** The list of currently selected items. */
     val selectedItems: List<T> = _selectedItems
+
+    /** The list of indices of currently selected items. */
     val selectedIndices: List<Int> = _selectedIndices
 
+    /** The selection mode (SINGLE or MULTIPLE). */
     var selectionMode by mutableStateOf(SelectionMode.SINGLE)
 
+    /**
+     * Selects an item at the given index.
+     *
+     * @param item The item to select.
+     * @param index The index of the item in the table.
+     */
     fun selectItem(item: T, index: Int) {
         when (selectionMode) {
             SelectionMode.SINGLE -> {
@@ -452,19 +567,44 @@ class TableSelectionModel<T> {
         }
     }
 
+    /**
+     * Deselects an item at the given index.
+     *
+     * @param item The item to deselect.
+     * @param index The index of the item in the table.
+     */
     fun deselectItem(item: T, index: Int) {
         _selectedItems.remove(item)
         _selectedIndices.remove(index)
     }
 
+    /**
+     * Checks if an item is selected.
+     *
+     * @param item The item to check.
+     * @return True if the item is selected, false otherwise.
+     */
     fun isSelected(item: T): Boolean = _selectedItems.contains(item)
+
+    /**
+     * Checks if an index is selected.
+     *
+     * @param index The index to check.
+     * @return True if the index is selected, false otherwise.
+     */
     fun isSelected(index: Int): Boolean = _selectedIndices.contains(index)
 
+    /** Clears all selected items and indices. */
     fun clearSelection() {
         _selectedItems.clear()
         _selectedIndices.clear()
     }
 
+    /**
+     * Selects all items in the provided list.
+     *
+     * @param items The list of items to select.
+     */
     fun selectAll(items: List<T>) {
         if (selectionMode == SelectionMode.MULTIPLE) {
             _selectedItems.clear()
@@ -481,10 +621,11 @@ class TableSelectionModel<T> {
 enum class SelectionMode { SINGLE, MULTIPLE }
 
 /**
- * Default values for `KomposeTable`.
+ * Default values for [KomposeTable].
  */
 @Immutable
 object KomposeTableDefaults {
+    /** Provides default colors for the table. */
     val colors: KomposeTableColors
         @Composable get() = KomposeTableColors(
             selectedRowColor = MaterialTheme.colorScheme.primaryContainer,
@@ -497,9 +638,16 @@ object KomposeTableDefaults {
         )
 }
 
-
 /**
- * Color configuration for `KomposeTable`.
+ * Color configuration for [KomposeTable].
+ *
+ * @param selectedRowColor The background color for selected rows.
+ * @param hoveredRowColor The background color for hovered rows.
+ * @param headerBorderColor The border color for the header.
+ * @param headerBackgroundColor The background color for the header.
+ * @param dividerColor The color of dividers between rows and columns.
+ * @param outlinedCardColor The background color for the outlined card.
+ * @param alternatingRowColors A list of colors for alternating row backgrounds.
  */
 @Immutable
 data class KomposeTableColors(
@@ -512,9 +660,22 @@ data class KomposeTableColors(
     val alternatingRowColors: List<Color>
 )
 
-
 /**
- * State configuration for `KomposeTable`.
+ * State configuration for [KomposeTable].
+ *
+ * @param outlinedTable Whether the table is displayed within an outlined card.
+ * @param outlinedCardBorder The border stroke for the outlined card, if any.
+ * @param outlinedCardShape The corner radius for the outlined card.
+ * @param showVerticalDividers Whether to show vertical dividers between columns.
+ * @param showHorizontalDividers Whether to show horizontal dividers between rows.
+ * @param dividerThickness The thickness of dividers.
+ * @param enableSorting Whether sorting is enabled for columns.
+ * @param enableSelection Whether row selection is enabled.
+ * @param enableColumnResizing Whether column resizing is enabled.
+ * @param enableHover Whether row hover effects are enabled.
+ * @param columnResizeMode The [ColumnResizeMode] for column resizing behavior.
+ * @param defaultSelectedIndices A set of indices to be selected by default.
+ * @param selectionMode The [SelectionMode] for the table (SINGLE or MULTIPLE).
  */
 @Stable
 data class KomposeTableState(
@@ -529,6 +690,8 @@ data class KomposeTableState(
     val enableColumnResizing: Boolean = true,
     val enableHover: Boolean = true,
     val columnResizeMode: ColumnResizeMode = ColumnResizeMode.UNCONSTRAINED,
+    val defaultSelectedIndices: Set<Int> = emptySet(),
+    val selectionMode: SelectionMode = SelectionMode.SINGLE,
 ) {
     companion object {
         /**
@@ -538,8 +701,8 @@ data class KomposeTableState(
             override fun SaverScope.save(value: KomposeTableState): Any {
                 return listOf(
                     value.outlinedTable,
-                    value.outlinedCardBorder?.width?.value ?: -1f, // Save width or -1 if null
-//                    value.outlinedCardBorder?.color?.value?.toLong() ?: -1L, // Save color as Long or -1 if null
+                    value.outlinedCardBorder?.width?.value ?: -1f,
+//                    value.outlinedCardBorder?.color?.value?.toLong() ?: -1L,
                     value.outlinedCardShape.value,
                     value.showVerticalDividers,
                     value.showHorizontalDividers,
@@ -549,11 +712,13 @@ data class KomposeTableState(
                     value.enableColumnResizing,
                     value.enableHover,
                     value.columnResizeMode.name,
+                    value.defaultSelectedIndices.toList(),
+                    value.selectionMode.name,
                 )
             }
 
             override fun restore(value: Any): KomposeTableState? {
-                if (value !is List<*> || value.size != 12) return null
+                if (value !is List<*> || value.size != 13) return null
                 return try {
                     val outlinedTable = value[0] as? Boolean ?: return null
                     val borderWidth = value[1] as? Float ?: return null
@@ -567,6 +732,9 @@ data class KomposeTableState(
                     val enableColumnResizing = value[9] as? Boolean ?: return null
                     val enableHover = value[10] as? Boolean ?: return null
                     val columnResizeModeName = value[11] as? String ?: return null
+                    val defaultSelectedIndices =
+                        (value[12] as? List<*>)?.mapNotNull { it as? Int }?.toSet() ?: return null
+                    val selectionModeName = value[13] as? String ?: return null
 
                     val borderStroke = if (borderWidth >= 0f && borderColorValue >= 0) {
                         BorderStroke(
@@ -588,10 +756,12 @@ data class KomposeTableState(
                         enableSelection = enableSelection,
                         enableColumnResizing = enableColumnResizing,
                         enableHover = enableHover,
-                        columnResizeMode = ColumnResizeMode.valueOf(columnResizeModeName)
+                        columnResizeMode = ColumnResizeMode.valueOf(columnResizeModeName),
+                        defaultSelectedIndices = defaultSelectedIndices,
+                        selectionMode = SelectionMode.valueOf(selectionModeName),
                     )
                 } catch (e: Exception) {
-                    null // Return null if restoration fails
+                    null
                 }
             }
         }
@@ -600,6 +770,19 @@ data class KomposeTableState(
 
 /**
  * Creates and remembers a [KomposeTableState] that survives configuration changes.
+ *
+ * @param outlinedTable Whether the table is displayed within an outlined card.
+ * @param outlinedCardBorder The border stroke for the outlined card, if any.
+ * @param outlinedCardShape The corner radius for the outlined card.
+ * @param showVerticalDividers Whether to show vertical dividers between columns.
+ * @param showHorizontalDividers Whether to show horizontal dividers between rows.
+ * @param dividerThickness The thickness of dividers.
+ * @param enableSorting Whether sorting is enabled for columns.
+ * @param enableSelection Whether row selection is enabled.
+ * @param enableColumnResizing Whether column resizing is enabled.
+ * @param enableHover Whether row hover effects are enabled.
+ * @param columnResizeMode The [ColumnResizeMode] for column resizing behavior.
+ * @return A [KomposeTableState] instance.
  */
 @Composable
 fun rememberKomposeTableState(
@@ -628,6 +811,67 @@ fun rememberKomposeTableState(
             enableColumnResizing = enableColumnResizing,
             enableHover = enableHover,
             columnResizeMode = columnResizeMode,
+            defaultSelectedIndices = emptySet(),
+            selectionMode = SelectionMode.SINGLE,
+        )
+    }
+}
+
+/**
+ * Creates and remembers a [KomposeTableState] with default selected indices and selection mode.
+ *
+ * @param defaultSelectedIndices A set of indices to be selected by default.
+ * @param selectionMode The [SelectionMode] for the table (SINGLE or MULTIPLE).
+ * @param outlinedTable Whether the table is displayed within an outlined card.
+ * @param outlinedCardBorder The border stroke for the outlined card, if any.
+ * @param outlinedCardShape The corner radius for the outlined card.
+ * @param showVerticalDividers Whether to show vertical dividers between columns.
+ * @param showHorizontalDividers Whether to show horizontal dividers between rows.
+ * @param dividerThickness The thickness of dividers.
+ * @param enableSorting Whether sorting is enabled for columns.
+ * @param enableSelection Whether row selection is enabled.
+ * @param enableColumnResizing Whether column resizing is enabled.
+ * @param enableHover Whether row hover effects are enabled.
+ * @param columnResizeMode The [ColumnResizeMode] for column resizing behavior.
+ * @return A [KomposeTableState] instance.
+ */
+@Composable
+fun rememberKomposeTableState(
+    defaultSelectedIndices: Set<Int>,
+    selectionMode: SelectionMode = SelectionMode.SINGLE,
+    outlinedTable: Boolean = true,
+    outlinedCardBorder: BorderStroke? = CardDefaults.outlinedCardBorder(),
+    outlinedCardShape: Dp = 8.dp,
+    showVerticalDividers: Boolean = true,
+    showHorizontalDividers: Boolean = true,
+    dividerThickness: Dp = 1.dp,
+    enableSorting: Boolean = true,
+    enableSelection: Boolean = true,
+    enableColumnResizing: Boolean = true,
+    enableHover: Boolean = true,
+    columnResizeMode: ColumnResizeMode = ColumnResizeMode.UNCONSTRAINED,
+): KomposeTableState {
+    // Validate defaultSelectedIndices based on selectionMode
+    val validatedIndices = when (selectionMode) {
+        SelectionMode.SINGLE -> defaultSelectedIndices.take(1).toSet()
+        SelectionMode.MULTIPLE -> defaultSelectedIndices
+    }
+
+    return rememberSaveable(saver = KomposeTableState.Saver) {
+        KomposeTableState(
+            outlinedTable = outlinedTable,
+            outlinedCardBorder = outlinedCardBorder,
+            outlinedCardShape = outlinedCardShape,
+            showVerticalDividers = showVerticalDividers,
+            showHorizontalDividers = showHorizontalDividers,
+            dividerThickness = dividerThickness,
+            enableSorting = enableSorting,
+            enableSelection = enableSelection,
+            enableColumnResizing = enableColumnResizing,
+            enableHover = enableHover,
+            columnResizeMode = columnResizeMode,
+            defaultSelectedIndices = validatedIndices,
+            selectionMode = selectionMode,
         )
     }
 }
